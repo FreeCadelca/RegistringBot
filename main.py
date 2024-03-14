@@ -33,7 +33,7 @@ def update_csv_cell(path: str, col: str, row_num: int, new_value: str):
 
     # записываем в файл заново все данные с изменённой ячейкой,
     # нужно перезаписывать всю таблицу, csv по-другому не умеет
-    with open(path, "w", newline='\n') as file:
+    with open(path, "w", newline='\n', encoding='utf-8') as file:
         data = csv.DictWriter(file, delimiter=',', fieldnames=headers)
         data.writerow(dict((heads, heads) for heads in headers))
         data.writerows(new_rows)
@@ -86,15 +86,26 @@ def add_row(path: str, new_row: str):
 
     # записываем в файл заново весь словарь с данными
     # (снова потому что csv по-другому не умеет)
-    with open(path, "w", newline='\n') as file:
+    with open(path, "w", newline='\n', encoding='utf-8') as file:
         data = csv.DictWriter(file, delimiter=',', fieldnames=headers)
         data.writerow(dict((heads, heads) for heads in headers))
         data.writerows(rows)
 
 
+# вспомогательная функция для записи сообщений чата в Texts.txt
+def write_to_logs(message: str, who: str):
+    # who - 'user'/'bot'
+    with open("Texts.txt", "a", encoding="utf-8") as file:
+        if who == 'user':
+            file.write(f'User:\n{message}\n\n')
+        elif who == 'bot':
+            file.write(f'Bot:\n{message}\n\n')
+
+
 # обработчик команды /start
 @bot.message_handler(commands=['start'])
 def start(message):
+    write_to_logs(message.text, 'user')
     # проверяем, существует ли в базе данных пользователь
     isUserExist = False
     with open("Data/users.csv", encoding='utf-8') as file:
@@ -117,6 +128,11 @@ def start(message):
                      f'٩(◕‿◕｡)۶\n'
                      f'Для помощи по боту можете воспользоваться командой /help',
                      parse_mode='html', reply_markup=main_menu)
+    write_to_logs(f'Здравствуйте, {message.chat.first_name}! \n'
+                  f'Я ваш личный бот для записи в группы по хобби\n'
+                  f'٩(◕‿◕｡)۶\n'
+                  f'Для помощи по боту можете воспользоваться командой /help',
+                  'bot')
 
 
 # функция для создания кнопок меню домашней страницы
@@ -131,41 +147,47 @@ def create_home_menu():
 # обработчик команды /help
 @bot.message_handler(commands=['help'])
 def give_help(message):
-    bot.send_message(message.chat.id,
-                     f'Я - бот для записи в группы по хобби.\n\n'
-                     f'Для того, чтобы записаться в группу, нажимите ниже на кнопку "Записаться на хобби", '
-                     f'далее можете посмотреть все существующие группы или выбрать то занятие, '
-                     f'в группу по которому вы хотите записаться (гитара/танцы). '
-                     f'После этого вам будут предложены группы, в которые у вас есть возможность записаться, '
-                     f'нажмите на кнопку с нужной вам группой под сообщением бота.\n\n'
-                     f'<u>Имейте в виду, что пока бот предлагает вам выбрать группы, остальные команды '
-                     f'(кроме /start, /home и /help), не будут работать.</u>\n\n'
-                     f'Также вы можете отказаться от группы, нажав на соответствующую кнопку на клавиатуре или '
-                     f'посмотреть свои выбранные группы',
-                     parse_mode='html')
+    write_to_logs(message.text, 'user')
+    help_message = (f'Я - бот для записи в группы по хобби.\n\n'
+                    f'Для того, чтобы записаться в группу, нажимите ниже на кнопку "Записаться на хобби", '
+                    f'далее можете посмотреть все существующие группы или выбрать то занятие, '
+                    f'в группу по которому вы хотите записаться (гитара/танцы). '
+                    f'После этого вам будут предложены группы, в которые у вас есть возможность записаться, '
+                    f'нажмите на кнопку с нужной вам группой под сообщением бота.\n\n'
+                    f'<u>Имейте в виду, что пока бот предлагает вам выбрать группы, остальные команды '
+                    f'(кроме /start, /home и /help), не будут работать.</u>\n\n'
+                    f'Также вы можете отказаться от группы, нажав на соответствующую кнопку на клавиатуре или '
+                    f'посмотреть свои выбранные группы')
+    bot.send_message(message.chat.id, help_message, parse_mode='html')
+    write_to_logs(help_message, 'bot')
 
 
 # обработчик команды /getstate (использовается для отладки)
 @bot.message_handler(commands=['getstate'])
 def get_state_command(message):
+    write_to_logs(message.text, 'user')
     bot.send_message(message.chat.id,
                      f'{getState(message.chat.id)}',
                      parse_mode='html')
+    write_to_logs(f'{getState(message.chat.id)}', 'bot')
 
 
 # обработчик команды /home
 @bot.message_handler(commands=['home'])
 def home(message):
+    write_to_logs(message.text, 'user')
     setState(message.chat.id, 'home')
     bot.send_message(message.chat.id,
                      f'Перемещаю на домашнюю страницу\n',
                      parse_mode='html', reply_markup=create_home_menu())
+    write_to_logs(f'Перемещаю на домашнюю страницу\n', 'bot')
 
 
 # обработчик всех текстовых сообщений (не команд!),
 # в нашем случае - кнопок, которые реализуются без команд (без / в начале)
 @bot.message_handler(content_types=['text'])
 def message_reply(message):
+    write_to_logs(message.text, 'user')
     # сначала проверяем состояния пользователя, после этого уже можем отправлять сообщение
     # на нужные функции ообработки в зависимости от кнопки, которую нажал пользователь
     if getState(message.chat.id) == 'home':
@@ -194,66 +216,6 @@ def message_reply(message):
                 choose_group_to_refuse(message, "guitar")
             case 'Занятия танцами':
                 choose_group_to_refuse(message, "dances")
-
-
-# функция, "собирающая" меню отказа от хобби
-def refuse_hobby(message):
-    setState(message.chat.id, 'refuse_hobby')
-
-    choose_hobby_to_refuse = telebot.types.ReplyKeyboardMarkup(True, True)
-    choose_hobby_to_refuse.row('/home', '/help')
-    choose_hobby_to_refuse.row('Занятия на гитаре', 'Занятия танцами')
-
-    bot.send_message(message.chat.id,
-                     f'От группы какого хобби вы хотите отказаться?\n',
-                     parse_mode='html', reply_markup=choose_hobby_to_refuse)
-
-
-# функция, реализующая подбор возможных групп для отказа
-def choose_group_to_refuse(message, type_of_group):
-    setState(message.chat.id, f'refuse_{type_of_group}_group')
-
-    # составляем список групп, в которых пользователь уже состоит
-    groups_already = []
-    with open("Data/users.csv", encoding='utf-8') as file:
-        file_reader = csv.DictReader(file, delimiter=",")
-        user_id = str(message.chat.id)
-        for row in file_reader:
-            if row["UserId"] == user_id and len(row[type_of_group]) != 0:
-                groups_already = row[type_of_group].split(' ')
-                break
-
-    # если у пользователя нет групп по данному виду хобби
-    if len(groups_already) == 0:
-        setState(message.chat.id, 'home')
-        bot.send_message(message.chat.id,
-                         f'У вас нет выбранных групп занятий по данному виду хобби',
-                         parse_mode='html', reply_markup=create_home_menu())
-        return 0
-    # начинаем собирать список описаний каждой группы
-    with open(f"Data/{type_of_group}_lessons.csv", encoding='utf-8') as file:
-        file_reader = csv.DictReader(file, delimiter=",")
-        descriptions_of_groups = []
-        groups = []
-        for row in file_reader:
-            # если человек уже состоит в данной группе берем информацию о ней
-            if row["Group"] in groups_already:
-                # собираем описание для текущей рассматриваемой группы
-                description = f'Группа №{row["Group"]} '
-                if type_of_group == 'guitar':
-                    description += f'с преподавателем {row["Teacher"]},\n'
-                elif type_of_group == 'dances':
-                    description += f'с хореографом {row["Choreographer"]},\n'
-                description += f'Занятия по {days[row["Day"]]} в {row["Time"]}, {row["Fullness"]} людей в группе\n'
-                descriptions_of_groups.append(description)
-                groups.append(f'Группа №{row["Group"]}')
-    buttons = telebot.types.InlineKeyboardMarkup()
-    for group in groups:
-        buttons.add(telebot.types.InlineKeyboardButton(text=group, callback_data=f'{group[8:]} {message.chat.id}'))
-    bot.send_message(message.chat.id,
-                     f'Выберите группу, от которой хотите отказаться.\nВы можете отказаться от следующих групп:\n\n' +
-                     '\n'.join(descriptions_of_groups),
-                     parse_mode='html', reply_markup=buttons)
 
 
 # функция для выдачи информации о всех имеющихся хобби у пользователя
@@ -308,6 +270,39 @@ def get_my_hobbies(message):
     if len(descriptions_of_groups_dances) != 0:
         output_message += 'Занятия по танцам:\n' + ''.join(descriptions_of_groups_dances) + '\n'
     bot.send_message(message.chat.id, output_message, parse_mode='html')
+    write_to_logs(output_message, 'bot')
+
+
+# функция для выдачи информации о всех хобби в базе данных бота
+def groups_info(message):
+    # сначала собираем в output описания групп по гитаре
+    descriptions_of_groups_guitar = []
+    with open("Data/guitar_lessons.csv", encoding='utf-8') as file:
+        file_reader = csv.DictReader(file, delimiter=",")
+        for row in file_reader:
+            descriptions_of_groups_guitar.append(f'Группа №{row["Group"]} '
+                                                 f'с преподавателем {row["Teacher"]},\n'
+                                                 f'Занятия по {days[row["Day"]]} '
+                                                 f'в {row["Time"]}, '
+                                                 f'{row["Fullness"]} людей в группе\n')
+    # потом собираем описания групп по танцам
+    descriptions_of_groups_dances = []
+    with open("Data/dances_lessons.csv", encoding='utf-8') as file:
+        file_reader = csv.DictReader(file, delimiter=",")
+        for row in file_reader:
+            descriptions_of_groups_dances.append(f'Группа №{row["Group"]} '
+                                                 f'с хореографом {row["Choreographer"]},\n'
+                                                 f'Занятия по {days[row["Day"]]} '
+                                                 f'в {row["Time"]}, '
+                                                 f'{row["Fullness"]} людей в группе\n')
+    # собираем итоговое сообщение пользователю
+    output_message = 'Существующие группы:\n\n'
+    if len(descriptions_of_groups_guitar) != 0:
+        output_message += 'Группы по гитаре:\n' + ''.join(descriptions_of_groups_guitar) + '\n'
+    if len(descriptions_of_groups_dances) != 0:
+        output_message += 'Группы по танцам:\n' + ''.join(descriptions_of_groups_dances) + '\n'
+    bot.send_message(message.chat.id, output_message, parse_mode='html')
+    write_to_logs(output_message, 'bot')
 
 
 # функция, "собирающая" меню выбора хобби
@@ -324,6 +319,7 @@ def choose_hobby_handler(message):
     bot.send_message(message.chat.id,
                      f'Выберите хобби\n',
                      parse_mode='html', reply_markup=choose_hobby_menu)
+    write_to_logs(f'Выберите хобби\n', 'bot')
 
 
 # функция, реализующая подбор возможных групп для записи
@@ -332,6 +328,7 @@ def choose_group(message, type_of_group):
                      f'Ищем для вас группы...\n',
                      parse_mode='html',
                      reply_markup=create_home_menu())
+    write_to_logs(f'Ищем для вас группы...\n', 'bot')
 
     # type_of_group = 'guitar'/'dances'
     setState(message.chat.id, 'choose_' + type_of_group + '_group')
@@ -377,6 +374,9 @@ def choose_group(message, type_of_group):
                          f'Извините, для вас нет доступных групп.\n'
                          f'Вы состоите во всех группах, либо в оставшихся группах нет мест',
                          parse_mode='html', reply_markup=create_home_menu())
+        write_to_logs(f'Извините, для вас нет доступных групп.\n'
+                      f'Вы состоите во всех группах, либо в оставшихся группах нет мест',
+                      'bot')
     else:
         buttons = telebot.types.InlineKeyboardMarkup()
         for group in groups:
@@ -385,6 +385,74 @@ def choose_group(message, type_of_group):
                          f'Выберите желаемую группу.\nВам доступны следующие группы:\n\n' +
                          '\n'.join(descriptions_of_groups),
                          parse_mode='html', reply_markup=buttons)
+        write_to_logs(f'Выберите желаемую группу.\nВам доступны следующие группы:\n\n' +
+                      '\n'.join(descriptions_of_groups),
+                      'bot')
+
+
+# функция, "собирающая" меню отказа от хобби
+def refuse_hobby(message):
+    setState(message.chat.id, 'refuse_hobby')
+
+    choose_hobby_to_refuse = telebot.types.ReplyKeyboardMarkup(True, True)
+    choose_hobby_to_refuse.row('/home', '/help')
+    choose_hobby_to_refuse.row('Занятия на гитаре', 'Занятия танцами')
+
+    bot.send_message(message.chat.id,
+                     f'От группы какого хобби вы хотите отказаться?\n',
+                     parse_mode='html', reply_markup=choose_hobby_to_refuse)
+    write_to_logs(f'От группы какого хобби вы хотите отказаться?\n', 'bot')
+
+
+# функция, реализующая подбор возможных групп для отказа
+def choose_group_to_refuse(message, type_of_group):
+    setState(message.chat.id, f'refuse_{type_of_group}_group')
+
+    # составляем список групп, в которых пользователь уже состоит
+    groups_already = []
+    with open("Data/users.csv", encoding='utf-8') as file:
+        file_reader = csv.DictReader(file, delimiter=",")
+        user_id = str(message.chat.id)
+        for row in file_reader:
+            if row["UserId"] == user_id and len(row[type_of_group]) != 0:
+                groups_already = row[type_of_group].split(' ')
+                break
+
+    # если у пользователя нет групп по данному виду хобби
+    if len(groups_already) == 0:
+        setState(message.chat.id, 'home')
+        bot.send_message(message.chat.id,
+                         f'У вас нет выбранных групп занятий по данному виду хобби',
+                         parse_mode='html', reply_markup=create_home_menu())
+        write_to_logs(f'У вас нет выбранных групп занятий по данному виду хобби', 'bot')
+        return 0
+    # начинаем собирать список описаний каждой группы
+    with open(f"Data/{type_of_group}_lessons.csv", encoding='utf-8') as file:
+        file_reader = csv.DictReader(file, delimiter=",")
+        descriptions_of_groups = []
+        groups = []
+        for row in file_reader:
+            # если человек уже состоит в данной группе берем информацию о ней
+            if row["Group"] in groups_already:
+                # собираем описание для текущей рассматриваемой группы
+                description = f'Группа №{row["Group"]} '
+                if type_of_group == 'guitar':
+                    description += f'с преподавателем {row["Teacher"]},\n'
+                elif type_of_group == 'dances':
+                    description += f'с хореографом {row["Choreographer"]},\n'
+                description += f'Занятия по {days[row["Day"]]} в {row["Time"]}, {row["Fullness"]} людей в группе\n'
+                descriptions_of_groups.append(description)
+                groups.append(f'Группа №{row["Group"]}')
+    buttons = telebot.types.InlineKeyboardMarkup()
+    for group in groups:
+        buttons.add(telebot.types.InlineKeyboardButton(text=group, callback_data=f'{group[8:]} {message.chat.id}'))
+    bot.send_message(message.chat.id,
+                     f'Выберите группу, от которой хотите отказаться.\nВы можете отказаться от следующих групп:\n\n' +
+                     '\n'.join(descriptions_of_groups),
+                     parse_mode='html', reply_markup=buttons)
+    write_to_logs(f'Выберите группу, от которой хотите отказаться.\nВы можете отказаться от следующих групп:\n\n' +
+                  '\n'.join(descriptions_of_groups),
+                  'bot')
 
 
 # функция, реализующая изменения информации о группах пользователя после его выбора (вид группы и отказ/зачисление)
@@ -429,43 +497,14 @@ def edit_a_group(number_of_group, user_id, type_of_group, mode):
     setState(user_id, 'home')
     message = (f'Вы зачислены в группу' if mode == 'add' else f'Вы отказались от группы') + f' №{number_of_group}\n'
     bot.send_message(user_id, message, parse_mode='html', reply_markup=create_home_menu())
-
-
-# функция для выдачи информации о всех хобби в базе данных бота
-def groups_info(message):
-    # сначала собираем в output описания групп по гитаре
-    descriptions_of_groups_guitar = []
-    with open("Data/guitar_lessons.csv", encoding='utf-8') as file:
-        file_reader = csv.DictReader(file, delimiter=",")
-        for row in file_reader:
-            descriptions_of_groups_guitar.append(f'Группа №{row["Group"]} '
-                                                 f'с преподавателем {row["Teacher"]},\n'
-                                                 f'Занятия по {days[row["Day"]]} '
-                                                 f'в {row["Time"]}, '
-                                                 f'{row["Fullness"]} людей в группе\n')
-    # потом собираем описания групп по танцам
-    descriptions_of_groups_dances = []
-    with open("Data/dances_lessons.csv", encoding='utf-8') as file:
-        file_reader = csv.DictReader(file, delimiter=",")
-        for row in file_reader:
-            descriptions_of_groups_dances.append(f'Группа №{row["Group"]} '
-                                                 f'с хореографом {row["Choreographer"]},\n'
-                                                 f'Занятия по {days[row["Day"]]} '
-                                                 f'в {row["Time"]}, '
-                                                 f'{row["Fullness"]} людей в группе\n')
-    # собираем итоговое сообщение пользователю
-    output_message = 'Существующие группы:\n\n'
-    if len(descriptions_of_groups_guitar) != 0:
-        output_message += 'Группы по гитаре:\n' + ''.join(descriptions_of_groups_guitar) + '\n'
-    if len(descriptions_of_groups_dances) != 0:
-        output_message += 'Группы по танцам:\n' + ''.join(descriptions_of_groups_dances) + '\n'
-    bot.send_message(message.chat.id, output_message, parse_mode='html')
+    write_to_logs(message, 'bot')
 
 
 # обработчик кнопок под сообщениями бота (inline keyboard) - выбора групп для отказа/зачисления
 @bot.callback_query_handler(func=lambda call: True)
 def query_handler(call):
     call.data = call.data.split()
+    write_to_logs(f'*Нажата кнопка "Группа №{call.data[0]}" на InlineKeyboard*', 'user')
     # в зависимости от состояния пользователя, перенаправляем его данные в функцию edit_a_group с нужными
     # параметрами: id пользователя, номер группы, вид хобби, добавление/удаление
     match getState(call.data[1]):
