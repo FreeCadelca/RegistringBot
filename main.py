@@ -198,6 +198,11 @@ def message_reply(message):
                 get_my_hobbies(message)
             case 'Отказаться от группы':
                 refuse_hobby(message)
+            case _:
+                bot.send_message(message.chat.id,
+                                 'Для общения с ботом используйте кнопки',
+                                 parse_mode='html')
+                write_to_logs('Для общения с ботом используйте кнопки', 'bot')
     elif getState(message.chat.id) == 'choose_hobby':
         match message.text:
             case '🎸Занятия на гитаре🎸':
@@ -206,16 +211,36 @@ def message_reply(message):
                 choose_group(message, 'dances')
             case 'Посмотреть все существующие группы':
                 groups_info(message)
+            case _:
+                bot.send_message(message.chat.id,
+                                 'Для общения с ботом используйте кнопки',
+                                 parse_mode='html')
+                write_to_logs('Для общения с ботом используйте кнопки', 'bot')
     elif getState(message.chat.id) == ('choose_guitar_group' or 'choose_dances_group'):
         match message.text:
             case 'Посмотреть все существующие группы':
                 groups_info(message)
+            case _:
+                bot.send_message(message.chat.id,
+                                 'Для общения с ботом используйте кнопки',
+                                 parse_mode='html')
+                write_to_logs('Для общения с ботом используйте кнопки', 'bot')
     elif getState(message.chat.id) == 'refuse_hobby':
         match message.text:
             case 'Занятия на гитаре':
                 choose_group_to_refuse(message, "guitar")
             case 'Занятия танцами':
                 choose_group_to_refuse(message, "dances")
+            case _:
+                bot.send_message(message.chat.id,
+                                 'Для общения с ботом используйте кнопки',
+                                 parse_mode='html')
+                write_to_logs('Для общения с ботом используйте кнопки', 'bot')
+    else:
+        bot.send_message(message.chat.id,
+                         'Для общения с ботом используйте кнопки',
+                         parse_mode='html')
+        write_to_logs('Для общения с ботом используйте кнопки', 'bot')
 
 
 # функция для выдачи информации о всех имеющихся хобби у пользователя
@@ -333,15 +358,16 @@ def choose_group(message, type_of_group):
     # type_of_group = 'guitar'/'dances'
     setState(message.chat.id, 'choose_' + type_of_group + '_group')
 
-    # составление списка групп, в которых пользователь уже состоит
-    groups_already = []
+    # составление множества групп, в которых пользователь уже состоит
+    groups_already = set()
     with open("Data/users.csv", encoding='utf-8') as file:
         file_reader = csv.DictReader(file, delimiter=",")
         user_id = str(message.chat.id)
 
         for row in file_reader:
             if row["UserId"] == user_id:
-                groups_already = row[type_of_group].split(' ')
+                for group in row[type_of_group].split(' '):
+                    groups_already.add(group)
                 break
 
     # составление списка групп, в которые может зачислиться пользователь
@@ -409,13 +435,14 @@ def choose_group_to_refuse(message, type_of_group):
     setState(message.chat.id, f'refuse_{type_of_group}_group')
 
     # составляем список групп, в которых пользователь уже состоит
-    groups_already = []
+    groups_already = set()
     with open("Data/users.csv", encoding='utf-8') as file:
         file_reader = csv.DictReader(file, delimiter=",")
         user_id = str(message.chat.id)
         for row in file_reader:
             if row["UserId"] == user_id and len(row[type_of_group]) != 0:
-                groups_already = row[type_of_group].split(' ')
+                for group in row[type_of_group].split(' '):
+                    groups_already.add(group)
                 break
 
     # если у пользователя нет групп по данному виду хобби
